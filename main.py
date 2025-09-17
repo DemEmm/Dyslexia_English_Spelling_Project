@@ -6,30 +6,15 @@ from googletrans import Translator
 import json
 import time
 from playsound import playsound
-
-
-# --- UI ---
-
-class User:
-    def __init__(self, Username, Userlevel, scv_path, json_path):
-        self.name = Username
-        self.level = Userlevel
-        self.csv_path = scv_path
-        self.json_path = json_path
-
-    def User_level_up(self):
-        self.level += 1
-        data = {
-            "Name": self.name,
-            "Level": self.level,
-            "csv_path": self.csv_path,
-            "json_path": self.json_path
-        }
-
-        # Save dictionary as JSON file
-        with open(self.json_path, "w") as file:
-            json.dump(data, file, indent=4)  # indent=4 makes it pretty formatted
-
+  
+"""
+A1	~500–1,000	    ~750
+A2	~1,000–2,000	~1500
+B1	~2,000–4,000	~3000
+B2	~4,000–8000	    ~6000
+C1	~8000–10,000	~9000
+C2	~10,000–20,000+	~15000
+"""
 
 def invitation():
     """"This function ask for the user. If user exists get the file path. if it doesn't generate a new file for him and
@@ -46,7 +31,7 @@ def invitation():
 
         df = pd.read_csv(Prototype_path)
         df = df[df["word"].str.len() > 2]  # remove all words with spesific length
-        df['mistakes'] = 5
+        df['mistakes'] = 5.0
         df['eval'] = df["count"] / df['count'].sum()  # calculates word value
         df.to_csv(usre_file_path_csv)  # save file
 
@@ -64,6 +49,7 @@ def invitation():
         My_user = User(username, 1, usre_file_path_csv, usre_file_path_json)
         print("this User doesn't exist and Created")
     else:
+        
         with open(usre_file_path_json, "r") as file:
             data = json.load(file)
             My_user = User(data["Name"], data["Level"], usre_file_path_csv, usre_file_path_json)
@@ -71,22 +57,9 @@ def invitation():
 
     return My_user
 
-
-def generate_word(df):
-    """get a df and choose the word in order to lern.
-    retunrs word"""
-    df_magic_word = df["word"].sample(n=1, weights=df["eval"])  # .samples gets random row with Specifies sampling weight per item. Higher weight increases sampling probability.
-    my_magic_word = df_magic_word.iloc[0]
-    my_magic_word_pos = df_magic_word.index[0]
-
-    return my_magic_word, my_magic_word_pos
-
-
 def speeker(my_magic_word):
     eng.say(my_magic_word)
     eng.runAndWait()
-    time.sleep(1)
-
 
 def Translate_prosidure(my_magic_word, translator):
     """"Say the magic word"""
@@ -96,8 +69,8 @@ def Translate_prosidure(my_magic_word, translator):
     except Exception as e:
         print(f"Translation error: {e}")
 
-
 def word_checker(my_magic_word, my_magic_word_pos, df):
+    """Ask user for the wrigt answer in oreder to compear it with the wright word"""
     my_magic_word_answer = input("give me the wright word: \n")
 
     if my_magic_word == my_magic_word_answer:
@@ -116,52 +89,115 @@ def word_checker(my_magic_word, my_magic_word_pos, df):
     return my_magic_word_answer
 
 
+class Teacher:
+    def __init__(self,student):
+        self.student = student
+        self.test_df = self.student.df.iloc[:3 * self.student.level, :]
+        self.my_magic_word = ""
+        self.my_magic_word_pos = 0
+        self.my_magic_word_answer = ""
+        self.generate_word()
+        self.mode = "brute"
+        
+    def generate_word(self):
+        """get a df and choose the word in order to lern.
+        retunrs word"""
+        
+        df_magic_word = self.test_df["word"].sample(n=1, weights=self.test_df["eval"])  # .samples gets random row with Specifies sampling weight per item. Higher weight increases sampling probability.
+        self.my_magic_word = df_magic_word.iloc[0]
+        self.my_magic_word_pos = df_magic_word.index[0]
+        
+    def word_checker(self):
+        """Ask user for the wrigt answer in oreder to compear it with the wright word"""
+        
+        self.my_magic_word_answer = input("give me the wright word: \n")
+        
+        if self.my_magic_word == self.my_magic_word_answer:
+            self.test_df.loc[self.my_magic_word_pos, "mistakes"] = self.test_df.loc[self.my_magic_word_pos, "mistakes"] * 0.2
+            self.test_df['eval'] = self.test_df["count"] * self.test_df['mistakes'] / self.test_df['count'].sum()
+            print(self.test_df.loc[self.my_magic_word_pos, "mistakes"])
+            print(self.test_df.loc[self.my_magic_word_pos, "eval"])
+            playsound("Speech On.wav")
+        else:
+            self.test_df.loc[self.my_magic_word_pos, "mistakes"] = self.test_df.loc[self.my_magic_word_pos, "mistakes"] * 1.5
+            self.test_df['eval'] = self.test_df["count"] * self.test_df['mistakes'] / self.test_df['count'].sum()
+            print(self.test_df.loc[self.my_magic_word_pos, "mistakes"])
+            print(self.test_df.loc[self.my_magic_word_pos, "eval"])
+            playsound("Speech Off.wav")
+        print(self.test_df)
+        
+    def level_checker(self):
+        print(self.test_df["mistakes"].sum())
+        print(len(self.test_df["mistakes"])*1.9)
+        if self.test_df["mistakes"].sum() < len(self.test_df["mistakes"])*1.9:
+            print("LEEEV")
+            self.student.User_level_up()
+            self.mode_create_df()
+    def mode_create_df(self):
+        match self.mode:
+            case "brute":
+                df = pd.read_csv(self.student.csv_path)
+                print(df.iloc[0:len(self.test_df)])
+                df.iloc[0:len(self.test_df)] = self.test_df
+                df.to_csv(self.student.csv_path)  # afto prepi na alxi apo edo !!!!!!
+                df = df.iloc[:3 * self.student.level, :]
+                self.test_df = df
+                print(self.test_df)
+            case "window":
+                print("NA")
+                pass
+class User:
+    def __init__(self, Username, Userlevel, scv_path, json_path):
+        self.name = Username
+        self.level = Userlevel
+        self.csv_path = scv_path
+        self.json_path = json_path
+        self.df = pd.read_csv(scv_path)
+
+    def User_level_up(self):
+        self.level += 1
+        
+        data = {
+            "Name": self.name,
+            "Level": self.level,
+            "csv_path": self.csv_path,
+            "json_path": self.json_path
+        }
+
+        # Save dictionary as JSON file
+        with open(self.json_path, "w") as file:
+            json.dump(data, file, indent=4)  # indent=4 makes it pretty formatted
+
+
 if __name__ == "__main__":
     playsound("Speech On.wav")
+    
     My_user = invitation()
-
-    df = pd.read_csv(My_user.csv_path)
-
-    df = df.iloc[:5 * My_user.level, :]
-
-    """
-    A1	~500–1,000	    ~750
-    A2	~1,000–2,000	~1500
-    B1	~2,000–4,000	~3000
-    B2	~4,000–8000	    ~6000
-    C1	~8000–10,000	~9000
-    C2	~10,000–20,000+	~15000
-    """
+    My_teacher = Teacher(My_user)
 
     translator = Translator()  # Generate Translator engin
     eng = sx.init()  # set up speeker engine
     eng.setProperty('rate', 90)  # set up the speed of speaker at 120 rate
 
-    my_magic_word_answer = ""
+    #my_magic_word_answer = ""
     Program_ends = True
 
     while Program_ends:
 
-        my_magic_word, my_magic_word_pos = generate_word(df)  # generate magic word
-        print(f"My magic words position: {my_magic_word_pos}")
-        speeker(my_magic_word)
-        Translate_prosidure(my_magic_word, translator)
+        My_teacher.generate_word()  # generate magic word
+        print(f"My magic words position: {My_teacher.my_magic_word_pos}")
+        speeker(My_teacher.my_magic_word)
+        #Translate_prosidure(my_magic_word, translator)
 
-        my_magic_word_answer = word_checker(my_magic_word, my_magic_word_pos, df)
-        print(my_magic_word_answer)
-
-        df.to_csv(My_user.csv_path, index=False)
-
-        match my_magic_word_answer:
+        My_teacher.word_checker()
+        print(My_teacher.my_magic_word_answer)
+        My_teacher.level_checker()
+        
+        
+        
+        match My_teacher.my_magic_word_answer:
             case "exit":
                 Program_ends = False
             case "!":
                 pass
-
-
-
-
-        if df["mistakes"].sum() < 5:
-            My_user.User_level_up()
-            df = pd.read_csv(My_user.csv_path)
-            df = df.iloc[:5 * My_user.level, :]
+                
