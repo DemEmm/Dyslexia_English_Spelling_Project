@@ -31,6 +31,7 @@ def invitation():
 
         df = pd.read_csv(Prototype_path)
         df = df[df["word"].str.len() > 2]  # remove all words with spesific length
+        df = df.iloc[:10]
         df['mistakes'] = 5.0
         df['eval'] = df["count"] / df['count'].sum()  # calculates word value
         df.to_csv(usre_file_path_csv)  # save file
@@ -92,7 +93,7 @@ def word_checker(my_magic_word, my_magic_word_pos, df):
 class Teacher:
     def __init__(self,student):
         self.student = student
-        self.test_df = self.student.df.iloc[:3 * self.student.level, :]
+        self.test_df = self.student.df.iloc[:10 * self.student.level, :]
         self.my_magic_word = ""
         self.my_magic_word_pos = 0
         self.my_magic_word_answer = ""
@@ -113,7 +114,7 @@ class Teacher:
         self.my_magic_word_answer = input("give me the wright word: \n")
         
         if self.my_magic_word == self.my_magic_word_answer:
-            self.test_df.loc[self.my_magic_word_pos, "mistakes"] = self.test_df.loc[self.my_magic_word_pos, "mistakes"] * 0.2
+            self.test_df.loc[self.my_magic_word_pos, "mistakes"] = self.test_df.loc[self.my_magic_word_pos, "mistakes"] * 0.5
             self.test_df['eval'] = self.test_df["count"] * self.test_df['mistakes'] / self.test_df['count'].sum()
             print(self.test_df.loc[self.my_magic_word_pos, "mistakes"])
             print(self.test_df.loc[self.my_magic_word_pos, "eval"])
@@ -182,6 +183,12 @@ if __name__ == "__main__":
     #my_magic_word_answer = ""
     Program_ends = True
 
+    Special_words_df = pd.DataFrame({
+    "word": [""] ,
+    "count": [1] ,
+    "mistakes": [1] ,
+    "eval": [1]
+    })
     while Program_ends:
 
         My_teacher.generate_word()  # generate magic word
@@ -199,5 +206,7 @@ if __name__ == "__main__":
             case "exit":
                 Program_ends = False
             case "!":
-                pass
+                Special_words_df.loc[len(Special_words_df)] = {"word": My_teacher.my_magic_word ,"count":1 ,"mistakes" :1 ,"eval": 1}
+                Special_words_df.to_csv(f"Users/Special.csv")
+                
                 
