@@ -31,7 +31,7 @@ def invitation():
 
         df = pd.read_csv(Prototype_path)
         df = df[df["word"].str.len() > 2]  # remove all words with spesific length
-        df = df.iloc[:10]
+        df = df.loc[30:]
         df['mistakes'] = 5.0
         df['eval'] = df["count"] / df['count'].sum()  # calculates word value
         df.to_csv(usre_file_path_csv)  # save file
@@ -62,13 +62,6 @@ def speeker(my_magic_word):
     eng.say(my_magic_word)
     eng.runAndWait()
 
-def Translate_prosidure(my_magic_word, translator):
-    """"Say the magic word"""
-    try:
-        translated_text = translator.translate(my_magic_word, src='en', dest='el')
-        print(f"Translated: {translated_text.text}")
-    except Exception as e:
-        print(f"Translation error: {e}")
 
 def word_checker(my_magic_word, my_magic_word_pos, df):
     """Ask user for the wrigt answer in oreder to compear it with the wright word"""
@@ -92,6 +85,7 @@ def word_checker(my_magic_word, my_magic_word_pos, df):
 
 class Teacher:
     def __init__(self,student):
+        self.translator = Translator()  # Generate Translator engin
         self.student = student
         self.test_df = self.student.df.iloc[:10 * self.student.level, :]
         self.my_magic_word = ""
@@ -99,6 +93,13 @@ class Teacher:
         self.my_magic_word_answer = ""
         self.generate_word()
         self.mode = "brute"
+    def Translate_prosidure(self):
+        """"Say the magic word"""
+        try:
+            translated_text = self.translator.translate(self.my_magic_word, src='en', dest='el')
+            print(f"Translated: {translated_text.text}")
+        except Exception as e:
+            print(f"Translation error: {e}")
         
     def generate_word(self):
         """get a df and choose the word in order to lern.
@@ -110,9 +111,25 @@ class Teacher:
         
     def word_checker(self):
         """Ask user for the wrigt answer in oreder to compear it with the wright word"""
-        
-        self.my_magic_word_answer = input("give me the wright word: \n")
-        
+        confirm_word=1
+        while confirm_word:
+            self.my_magic_word_answer = input("give me the wright word: \n")
+                
+            match self.my_magic_word_answer:
+                
+                case ":exit":
+                    exit()
+                case ":save":
+                    Special_words_df.loc[len(Special_words_df)] = {"word": self.my_magic_word ,"count":1 ,"mistakes" :1 ,"eval": 1}
+                    Special_words_df.to_csv(f"Users/Special.csv")
+                case ":print":
+                    print(f"{self.my_magic_word}")
+                case ":translate" :
+                    print("translate")
+                    self.Translate_prosidure()
+                case ":next" :
+                    return
+                
         if self.my_magic_word == self.my_magic_word_answer:
             self.test_df.loc[self.my_magic_word_pos, "mistakes"] = self.test_df.loc[self.my_magic_word_pos, "mistakes"] * 0.5
             self.test_df['eval'] = self.test_df["count"] * self.test_df['mistakes'] / self.test_df['count'].sum()
@@ -176,12 +193,11 @@ if __name__ == "__main__":
     My_user = invitation()
     My_teacher = Teacher(My_user)
 
-    translator = Translator()  # Generate Translator engin
+    
     eng = sx.init()  # set up speeker engine
     eng.setProperty('rate', 90)  # set up the speed of speaker at 120 rate
 
     #my_magic_word_answer = ""
-    Program_ends = True
 
     Special_words_df = pd.DataFrame({
     "word": [""] ,
@@ -189,24 +205,15 @@ if __name__ == "__main__":
     "mistakes": [1] ,
     "eval": [1]
     })
-    while Program_ends:
+    
+    while True:
 
         My_teacher.generate_word()  # generate magic word
         print(f"My magic words position: {My_teacher.my_magic_word_pos}")
         speeker(My_teacher.my_magic_word)
-        #Translate_prosidure(my_magic_word, translator)
 
         My_teacher.word_checker()
         print(My_teacher.my_magic_word_answer)
         My_teacher.level_checker()
         
         
-        
-        match My_teacher.my_magic_word_answer:
-            case "exit":
-                Program_ends = False
-            case "!":
-                Special_words_df.loc[len(Special_words_df)] = {"word": My_teacher.my_magic_word ,"count":1 ,"mistakes" :1 ,"eval": 1}
-                Special_words_df.to_csv(f"Users/Special.csv")
-                
-                

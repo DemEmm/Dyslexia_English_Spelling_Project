@@ -1,0 +1,2 @@
+add option in order to apear the current word
+add option in order to translate word
