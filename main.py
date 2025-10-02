@@ -55,35 +55,15 @@ def invitation():
             data = json.load(file)
             My_user = User(data["Name"], data["Level"], usre_file_path_csv, usre_file_path_json)
         print("User exist")
-
+        
     return My_user
 
 def speeker(my_magic_word):
     eng.say(my_magic_word)
     eng.runAndWait()
 
-
-def word_checker(my_magic_word, my_magic_word_pos, df):
-    """Ask user for the wrigt answer in oreder to compear it with the wright word"""
-    my_magic_word_answer = input("give me the wright word: \n")
-
-    if my_magic_word == my_magic_word_answer:
-        df.loc[my_magic_word_pos, "mistakes"] = df.loc[my_magic_word_pos, "mistakes"] * 0.7
-        df['eval'] = df["count"] * df['mistakes'] / df['count'].sum()
-        print(df.loc[my_magic_word_pos, "mistakes"])
-        print(df.loc[my_magic_word_pos, "eval"])
-        playsound("Speech On.wav")
-    else:
-        df.loc[my_magic_word_pos, "mistakes"] = df.loc[my_magic_word_pos, "mistakes"] * 1.5
-        df['eval'] = df["count"] * df['mistakes'] / df['count'].sum()
-        print(df.loc[my_magic_word_pos, "mistakes"])
-        print(df.loc[my_magic_word_pos, "eval"])
-        playsound("Speech Off.wav")
-    print(df)
-    return my_magic_word_answer
-
-
 class Teacher:
+
     def __init__(self,student):
         self.translator = Translator()  # Generate Translator engin
         self.student = student
@@ -93,6 +73,7 @@ class Teacher:
         self.my_magic_word_answer = ""
         self.generate_word()
         self.mode = "brute"
+        
     def Translate_prosidure(self):
         """"Say the magic word"""
         try:
@@ -111,7 +92,9 @@ class Teacher:
         
     def word_checker(self):
         """Ask user for the wrigt answer in oreder to compear it with the wright word"""
-        confirm_word=1
+        
+        confirm_word = True
+        
         while confirm_word:
             self.my_magic_word_answer = input("give me the wright word: \n")
                 
@@ -129,6 +112,21 @@ class Teacher:
                     self.Translate_prosidure()
                 case ":next" :
                     return
+                case ":remove" :
+                    df = pd.read_csv(self.student.csv_path)
+                    print(df[0:10])
+                    df = df.drop(index=self.my_magic_word_pos)
+                    print(df[0:10])
+                    df.to_csv(self.student.csv_path, index = False)
+                    self.student.df = df
+                    self.test_df = self.student.df.iloc[:10 * self.student.level, :]
+                    
+                    #print(df.loc[self.my_magic_word_pos,:])
+                    return
+                    
+                    print("this one will remove the spesific word from df list")
+                case _:
+                    confirm_word = False
                 
         if self.my_magic_word == self.my_magic_word_answer:
             self.test_df.loc[self.my_magic_word_pos, "mistakes"] = self.test_df.loc[self.my_magic_word_pos, "mistakes"] * 0.5
@@ -163,15 +161,16 @@ class Teacher:
                 print(self.test_df)
             case "window":
                 print("NA")
-                pass
+                
 class User:
-    def __init__(self, Username, Userlevel, scv_path, json_path):
+
+    def __init__(self, Username, Userlevel, csv_path, json_path):
         self.name = Username
         self.level = Userlevel
-        self.csv_path = scv_path
+        self.csv_path = csv_path
         self.json_path = json_path
-        self.df = pd.read_csv(scv_path)
-
+        self.df = pd.read_csv(csv_path)
+        
     def User_level_up(self):
         self.level += 1
         
@@ -180,25 +179,22 @@ class User:
             "Level": self.level,
             "csv_path": self.csv_path,
             "json_path": self.json_path
-        }
+            }
 
         # Save dictionary as JSON file
         with open(self.json_path, "w") as file:
             json.dump(data, file, indent=4)  # indent=4 makes it pretty formatted
 
-
 if __name__ == "__main__":
+    
     playsound("Speech On.wav")
     
     My_user = invitation()
     My_teacher = Teacher(My_user)
-
     
     eng = sx.init()  # set up speeker engine
     eng.setProperty('rate', 90)  # set up the speed of speaker at 120 rate
-
-    #my_magic_word_answer = ""
-
+    
     Special_words_df = pd.DataFrame({
     "word": [""] ,
     "count": [1] ,
@@ -215,5 +211,4 @@ if __name__ == "__main__":
         My_teacher.word_checker()
         print(My_teacher.my_magic_word_answer)
         My_teacher.level_checker()
-        
         
